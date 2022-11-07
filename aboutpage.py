@@ -11,7 +11,7 @@ from pprint import pprint
 import requests
 
 from bs4 import BeautifulSoup
-from ban_list_parser import ban_list_parser
+from BanListParser import BanListParser
 
 
 class Bans(BanListParser):
@@ -59,6 +59,6 @@ class Bans(BanListParser):
                         cols = [ele.text.strip() for ele in cols]
                         bans.append({
                             "domain": cols[0],
-                            "reason": cols[1]
+                            "reason": "{} (automated-aboutpage): {}".format( domain, cols[1] )
                         })
             return bans

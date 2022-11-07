@@ -1,4 +1,4 @@
-from ban_list_parser import ban_list_parser
+from BanListParser import BanListParser
 
 from bs4 import BeautifulSoup
 
@@ -7,7 +7,7 @@ import re
 
 import sys
 
-class bans( ban_list_parser ):
+class Bans( BanListParser ):
     tf_list_url = "https://wiki.tenforward.social/doku.php?id=tenforward:suspensions&do=edit"
 
     ban_prefix = "tenforward"

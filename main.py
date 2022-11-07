@@ -103,6 +103,7 @@ if __name__ == '__main__':
         pprint(row)
 
     sql_insert_domain_block = """INSERT INTO domain_blocks ( domain, created_at, updated_at, severity, reject_media, reject_reports, private_comment, obfuscate ) VALUES ( %s, now(), now(), %s, %s, %s, %s, %s )"""
+    sql_update_comment_domain_block = """UPDATE domain_blocks SET updated_at = now(),  private_comment = %s WHERE domain = %s"""
 
     for domain in d_BANS:
         if not any(d['domain'] == domain for d in rows):
@@ -121,6 +122,32 @@ if __name__ == '__main__':
                     'f',  # reject_reports
                     "\n".join(d_BANS[domain]['reason']),  # private_comment,
                     'f'  # obfuscate,
+                )
+            )
+        else:
+            # ok ban does exist, lets add some additional commentary
+
+            dbRowIndex = next((index for (index, d) in enumerate(rows) if d["domain"] == domain), None)
+
+            pprint( dbRowIndex )
+
+            dbRow = rows[ dbRowIndex ]
+
+            pprint( dbRow )
+            
+            updatedComment = [ dbRow['private_comment'] ]
+            
+            # ok make sure we don't already have this reason in the comment
+            for reason_line in d_BANS[domain]['reason']:
+                if reason_line in updatedComment:
+                    continue
+                updatedComment.append( reason_line )
+
+            pg_cur.execute(
+                sql_update_comment_domain_block,
+                (
+                    "\n".join(updatedComment),  # private_comment,
+                    domain,  # domain
                 )
             )
 
