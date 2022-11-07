@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from ban_list_parser import ban_list_parser
 
 
-class Bans(ban_list_parser):
+class Bans(BanListParser):
     """Pulls down a set of bans and reasons for all systems with which we're
     federated."""
 

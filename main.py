@@ -1,126 +1,131 @@
-from mastodon import Mastodon
+#!/usr/bin/python3
+# coding: UTF-8
+
+"""Launches the magic.  Not much happens here."""
+
+
 import configparser
 import sys
-
-from requests import Session
+import json
+from pprint import pprint
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import json
 
-from pprint import pprint
+from mastodon import Mastodon
+from requests import Session
 
-bans = []
+if __name__ == '__main__':
+    _BANS = []
+    _CONFIG = configparser.ConfigParser()
+    _CONFIG.read('config.ini')
 
-config = configparser.ConfigParser()
+    pprint(_CONFIG['parsers']['list'])
 
-config.read('config.ini')
+    try:
+        parser_list = json.loads(_CONFIG['parsers']['list'])
+    except:
+        print("config file section parsers item 'list' does not parse as valid json, please fix")
+        sys.exit(-1)
 
-pprint( config['parsers']['list'] )
+    for parser in parser_list:
+        print(f"Parser: {parser}")
+        module = __import__(parser)
+        getfrom = module.Bans(_CONFIG)
+        _BANS.extend(getfrom.getbans())
 
-try:
-    parser_list = json.loads( config['parsers']['list'] )
-except:
-    print( "config file section prasers item 'list' does not parse as valid json, please fix" )
+    pprint(_BANS)
+
     sys.exit()
 
-for x in parser_list:
-    print("Parser: {}".format( x ) )
-    module = __import__( x )
-    getfrom = module.bans( config )
-    bans.extend( getfrom.getbans() )
+    # rjh -- nothing below this line will ever be executed -- should we cut it?
 
-pprint( bans )
+    d_BANS = {}
+    # ok first things first lets turn these lists into a combined dictionary
+    for ban in _BANS:
+        #print("New ban:")
+        #pprint( ban )
+        domain = ban['domain']
+        reason = ban['reason']
 
-sys.exit()
+        if domain in d_BANS:
+            d_BANS[domain]['reason'].append(reason)
+        else:
+            d_BANS[domain] = {}
+            d_BANS[domain]['reason'] = []
+            d_BANS[domain]['reason'].append(reason)
 
-dbans = {}
-# ok first things first lets turn these lists into a combined dictionary
-for ban in bans:
-    #print("New ban:")
-    #pprint( ban )
-    domain = ban['domain']
-    reason = ban['reason']
+        print(d_BANS[domain]['reason'])
 
-    if domain in dbans:
-        dbans[domain]['reason'].append( reason )
+    pprint(d_BANS)
+
+    if "oauth" not in _CONFIG['mastodon'] or _CONFIG['mastodon']['oauth'] == "":
+        Mastodon.create_app(
+            'hulk-banner',
+            scopes=['read', 'write'],
+            api_base_url=_CONFIG['base']['site'],
+            to_file='pytooter_clientcred.secret'
+        )
+        print("Please add client_id to the _CONFIG.ini")
+        sys.exit()
+
+
+    if 'ignore_cert' in _CONFIG['mastodon']:
+        req_session = Session()
+        if _CONFIG['mastodon']['ignore_cert'] == "True":
+            req_session.verify = False
+        else:
+            req_session.verify = True
+
     else:
-        dbans[domain] = {}
-        dbans[domain]['reason'] = []
-        dbans[domain]['reason'].append( reason )
+        req_session = None
 
-    print( dbans[domain]['reason'] )
-
-pprint( dbans )
-
-if "oauth" not in config['mastodon'] or config['mastodon']['oauth'] == "":
-    Mastodon.create_app(
-        'hulk-banner',
-        scopes=['read', 'write'],
-        api_base_url = config['base']['site'],
-        to_file = 'pytooter_clientcred.secret'
-    )
-    print("Please add client_id to the config.ini")
-    sys.exit()
-
-
-if 'ignore_cert' in config['mastodon']:
-    req_session = Session()
-    if config['mastodon']['ignore_cert'] == "True":
-        req_session.verify = False
-    else:
-        req_session.verify = True
-
-else:
-    req_session = None
-
-mastodon = Mastodon(
-    config['mastodon']['client_id'],
-    config['mastodon']['client_secret'],
-    config['mastodon']['oauth'],
-    api_base_url = config['base']['site'],
-    mastodon_version = "3.5.3",
-    session = req_session
-)
-
-print( mastodon.domain_blocks() )
-
-pg_conn = psycopg2.connect(
-    database = config['postgres']['database'],
-    user = config['postgres']['user'],
-    password = config['postgres']['password'],
-    host = config['postgres']['host'],
-    port = config['postgres']['port']
+    mastodon = Mastodon(
+        _CONFIG['mastodon']['client_id'],
+        _CONFIG['mastodon']['client_secret'],
+        _CONFIG['mastodon']['oauth'],
+        api_base_url=_CONFIG['base']['site'],
+        mastodon_version="3.5.3",
+        session=req_session
     )
 
-pg_cur = pg_conn.cursor(cursor_factory=RealDictCursor)
+    print(mastodon.domain_blocks())
 
-pg_cur.execute("SELECT * from domain_blocks")
-rows = pg_cur.fetchall()
-for row in rows:
-   # current schema
-   pprint( row )
+    pg_conn = psycopg2.connect(
+        database=_CONFIG['postgres']['database'],
+        user=_CONFIG['postgres']['user'],
+        password=_CONFIG['postgres']['password'],
+        host=_CONFIG['postgres']['host'],
+        port=_CONFIG['postgres']['port']
+    )
 
-sql_insert_domain_block = """INSERT INTO domain_blocks ( domain, created_at, updated_at, severity, reject_media, reject_reports, private_comment, obfuscate ) VALUES ( %s, now(), now(), %s, %s, %s, %s, %s )"""
+    pg_cur = pg_conn.cursor(cursor_factory=RealDictCursor)
 
-for domain in dbans:
+    pg_cur.execute("SELECT * from domain_blocks")
+    rows = pg_cur.fetchall()
+    for row in rows:
+        # current schema
+        pprint(row)
 
-    if not any( d['domain'] == domain for d in rows ):
-        # ban currently doesn't exist
-        print( "Missing ban for {}".format( domain ) )
-        print( "    Reason: {}".format( "\n".join( dbans[domain]['reason'] ) ) )
+    sql_insert_domain_block = """INSERT INTO domain_blocks ( domain, created_at, updated_at, severity, reject_media, reject_reports, private_comment, obfuscate ) VALUES ( %s, now(), now(), %s, %s, %s, %s, %s )"""
 
-        pg_cur.execute(
+    for domain in d_BANS:
+        if not any(d['domain'] == domain for d in rows):
+            # ban currently doesn't exist
+            print("Missing ban for {}".format(domain))
+            print("    Reason: {}".format("\n".join(d_BANS[domain]['reason'])))
+
+            pg_cur.execute(
                 sql_insert_domain_block,
                 (
-                    domain, # domain
+                    domain,  # domain
                     # created_at is done by now(),
                     # updated_at is done by now(),
                     1,
-                    'f', # reject_media
-                    'f', # reject_reports
-                    "\n".join( dbans[domain]['reason'] ), # private_comment,
-                    'f' # obfuscate,
-                    )
+                    'f',  # reject_media
+                    'f',  # reject_reports
+                    "\n".join(d_BANS[domain]['reason']),  # private_comment,
+                    'f'  # obfuscate,
                 )
+            )
 
-pg_conn.commit()
+    pg_conn.commit()
