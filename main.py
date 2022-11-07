@@ -35,10 +35,6 @@ if __name__ == '__main__':
 
     pprint(_BANS)
 
-    sys.exit()
-
-    # rjh -- nothing below this line will ever be executed -- should we cut it?
-
     d_BANS = {}
     # ok first things first lets turn these lists into a combined dictionary
     for ban in _BANS:
