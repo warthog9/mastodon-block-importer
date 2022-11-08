@@ -54,35 +54,36 @@ if __name__ == '__main__':
 
     #pprint(d_BANS)
 
-    if "oauth" not in _CONFIG['mastodon'] or _CONFIG['mastodon']['oauth'] == "":
-        Mastodon.create_app(
-            'hulk-banner',
-            scopes=['read', 'write'],
-            api_base_url=_CONFIG['base']['site'],
-            to_file='pytooter_clientcred.secret'
-        )
-        print("Please add client_id to the _CONFIG.ini")
-        sys.exit()
-
-
-    if 'ignore_cert' in _CONFIG['mastodon']:
-        req_session = Session()
-        if _CONFIG['mastodon']['ignore_cert'] == "True":
-            req_session.verify = False
-        else:
-            req_session.verify = True
-
-    else:
-        req_session = None
-
-    mastodon = Mastodon(
-        _CONFIG['mastodon']['client_id'],
-        _CONFIG['mastodon']['client_secret'],
-        _CONFIG['mastodon']['oauth'],
-        api_base_url=_CONFIG['base']['site'],
-        mastodon_version="3.5.3",
-        session=req_session
-    )
+    # *CURRENTLY* this isn't useful, lets get the helpers sorted and come back to it
+    #if "oauth" not in _CONFIG['mastodon'] or _CONFIG['mastodon']['oauth'] == "":
+    #    Mastodon.create_app(
+    #        'hulk-banner',
+    #        scopes=['read', 'write'],
+    #        api_base_url=_CONFIG['base']['site'],
+    #        to_file='pytooter_clientcred.secret'
+    #    )
+    #    print("Please add client_id to the _CONFIG.ini")
+    #    sys.exit()
+    #
+    #
+    #if 'ignore_cert' in _CONFIG['mastodon']:
+    #    req_session = Session()
+    #    if _CONFIG['mastodon']['ignore_cert'] == "True":
+    #        req_session.verify = False
+    #    else:
+    #        req_session.verify = True
+    #
+    #else:
+    #    req_session = None
+    #
+    #mastodon = Mastodon(
+    #    _CONFIG['mastodon']['client_id'],
+    #    _CONFIG['mastodon']['client_secret'],
+    #    _CONFIG['mastodon']['oauth'],
+    #    api_base_url=_CONFIG['base']['site'],
+    #    mastodon_version="3.5.3",
+    #    session=req_session
+    #)
 
     #print(mastodon.domain_blocks())
 
