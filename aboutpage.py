@@ -31,10 +31,13 @@ class Bans(BanListParser):
             sys.exit(-1)
 
         # rjh -- let's make the next few lines a little more legible.
+        # jah -- thingy is the technical term, please also see whatsit, and stuff
         thingy = self.config[self.config_section][self.config_section_list]
-        pprint(thingy)
+        #pprint(thingy)
         try:
             self.domains = json.loads(thingy)
+            #print( "Loaded domains list..." )
+            #pprint( self.domains )
         except Exception as exc:
             print(f"config file section parsers item '{self.config_section}'" +
                   f" doesn't parse as valid json, please fix - {exc}")
@@ -43,8 +46,8 @@ class Bans(BanListParser):
 
     def getbans(self):
         for domain in self.domains:
+            #print( "aboutpage domain: {}".format( domain ) )
             page = requests.get(f"https://{domain}/about/more")
-            print(page)
             tables = BeautifulSoup(page.content, 'html5lib').find_all('table')
             bans = []
             accept_set = set(["<th>Server</th>", "<th>Reason</th>"])
@@ -61,4 +64,4 @@ class Bans(BanListParser):
                             "domain": cols[0],
                             "reason": "{} (automated-aboutpage): {}".format( domain, cols[1] )
                         })
-            return bans
+        return bans

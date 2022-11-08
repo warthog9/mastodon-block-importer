@@ -33,7 +33,7 @@ if __name__ == '__main__':
         getfrom = module.Bans(_CONFIG)
         _BANS.extend(getfrom.getbans())
 
-    pprint(_BANS)
+    #pprint(_BANS)
 
     d_BANS = {}
     # ok first things first lets turn these lists into a combined dictionary
@@ -50,9 +50,9 @@ if __name__ == '__main__':
             d_BANS[domain]['reason'] = []
             d_BANS[domain]['reason'].append(reason)
 
-        print(d_BANS[domain]['reason'])
+        #print(d_BANS[domain]['reason'])
 
-    pprint(d_BANS)
+    #pprint(d_BANS)
 
     if "oauth" not in _CONFIG['mastodon'] or _CONFIG['mastodon']['oauth'] == "":
         Mastodon.create_app(
@@ -84,7 +84,7 @@ if __name__ == '__main__':
         session=req_session
     )
 
-    print(mastodon.domain_blocks())
+    #print(mastodon.domain_blocks())
 
     pg_conn = psycopg2.connect(
         database=_CONFIG['postgres']['database'],
@@ -98,9 +98,9 @@ if __name__ == '__main__':
 
     pg_cur.execute("SELECT * from domain_blocks")
     rows = pg_cur.fetchall()
-    for row in rows:
-        # current schema
-        pprint(row)
+    #for row in rows:
+    #    # current schema
+    #    pprint(row)
 
     sql_insert_domain_block = """INSERT INTO domain_blocks ( domain, created_at, updated_at, severity, reject_media, reject_reports, private_comment, obfuscate ) VALUES ( %s, now(), now(), %s, %s, %s, %s, %s )"""
     sql_update_comment_domain_block = """UPDATE domain_blocks SET updated_at = now(),  private_comment = %s WHERE domain = %s"""
@@ -129,13 +129,20 @@ if __name__ == '__main__':
 
             dbRowIndex = next((index for (index, d) in enumerate(rows) if d["domain"] == domain), None)
 
-            pprint( dbRowIndex )
+            #pprint( dbRowIndex )
 
             dbRow = rows[ dbRowIndex ]
 
-            pprint( dbRow )
+            #pprint( dbRow )
             
-            updatedComment = [ dbRow['private_comment'] ]
+            updatedComment = dbRow['private_comment'].splitlines()
+
+            updateComment = []
+            [ updateComment.append(x) for x in updatedComment if x not in updateComment ]
+
+            updatedComment = updateComment
+
+            pprint( updatedComment )
             
             # ok make sure we don't already have this reason in the comment
             for reason_line in d_BANS[domain]['reason']:
@@ -143,12 +150,33 @@ if __name__ == '__main__':
                     continue
                 updatedComment.append( reason_line )
 
-            pg_cur.execute(
-                sql_update_comment_domain_block,
-                (
-                    "\n".join(updatedComment),  # private_comment,
-                    domain,  # domain
-                )
-            )
+            if d_BANS[domain]['reason'][0] != "\n".join(updatedComment):
+                print("Updating ban with new reason: {}".format( "\n".join(updatedComment) ) )
+                print( ( d_BANS[domain]['reason'][0] != "\n".join(updatedComment) ) )
+                print( "old:" )
+                pprint( d_BANS[domain]['reason'] )
+                print( "new:" )
+                pprint( "\n".join(updatedComment) )
+                print( domain )
+
+                try:
+                    pg_cur.execute(
+                        sql_update_comment_domain_block,
+                        (
+                            "\n".join(updatedComment),  # private_comment,
+                            domain,  # domain
+                        )
+                    )
+                except Exception as e:
+                    print( "Well something went wrong updating {}".format( e ) )
+                    sys.exit(-1)
+
+                print( "Updated rows: {}".format( pg_cur.rowcount ) )
+
+                try:
+                    pg_conn.commit()
+                except Exception as e:
+                    print( "Well something went wrong trying to commit the changes..." )
+                    sys.exit(-1)
 
     pg_conn.commit()
