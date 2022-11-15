@@ -35,6 +35,12 @@ if __name__ == '__main__':
 
     #pprint(_BANS)
 
+    try:
+        explicitly_allowed = json.loads( _CONFIG['allowed']['list'] )
+    except Exception as e:
+        print( "Config Error - allowed 'list' does not parse as valid json" )
+        sys.exit(-1)
+
     d_BANS = {}
     # ok first things first lets turn these lists into a combined dictionary
     for ban in _BANS:
@@ -43,7 +49,10 @@ if __name__ == '__main__':
         domain = ban['domain']
         reason = ban['reason']
 
-        if domain in d_BANS:
+        if domain in explicitly_allowed:
+            print( "{} found in remote block list, explicitly allowing by config".format( domain ) )
+            continue
+        elif domain in d_BANS:
             d_BANS[domain]['reason'].append(reason)
         else:
             d_BANS[domain] = {}
@@ -143,7 +152,7 @@ if __name__ == '__main__':
 
             updatedComment = updateComment
 
-            pprint( updatedComment )
+            #pprint( updatedComment )
             
             # ok make sure we don't already have this reason in the comment
             for reason_line in d_BANS[domain]['reason']:
@@ -152,13 +161,13 @@ if __name__ == '__main__':
                 updatedComment.append( reason_line )
 
             if d_BANS[domain]['reason'][0] != "\n".join(updatedComment):
-                print("Updating ban with new reason: {}".format( "\n".join(updatedComment) ) )
-                print( ( d_BANS[domain]['reason'][0] != "\n".join(updatedComment) ) )
-                print( "old:" )
-                pprint( d_BANS[domain]['reason'] )
-                print( "new:" )
-                pprint( "\n".join(updatedComment) )
-                print( domain )
+                #print("Updating ban with new reason: {}".format( "\n".join(updatedComment) ) )
+                #print( ( d_BANS[domain]['reason'][0] != "\n".join(updatedComment) ) )
+                #print( "old:" )
+                #pprint( d_BANS[domain]['reason'] )
+                #print( "new:" )
+                #pprint( "\n".join(updatedComment) )
+                #print( domain )
 
                 try:
                     pg_cur.execute(
@@ -171,8 +180,6 @@ if __name__ == '__main__':
                 except Exception as e:
                     print( "Well something went wrong updating {}".format( e ) )
                     sys.exit(-1)
-
-                print( "Updated rows: {}".format( pg_cur.rowcount ) )
 
                 try:
                     pg_conn.commit()
