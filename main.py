@@ -18,6 +18,7 @@ if __name__ == '__main__':
     _BANS = []
     _CONFIG = configparser.ConfigParser()
     _CONFIG.read('config.ini')
+    _IMPORTED_FLAG = "imported:"
 
     pprint(_CONFIG['parsers']['list'])
 
@@ -49,12 +50,23 @@ if __name__ == '__main__':
         domain = ban['domain']
         reason = ban['reason']
 
+        if '*' in domain:
+            print( "{} is obfuscated - useless to import".format( domain ) )
+            continue
+
+        if reason is None:
+            reason = ""
+
         if domain in explicitly_allowed:
             print( "{} found in remote block list, explicitly allowing by config".format( domain ) )
+            continue
+        elif not reason is None and reason.startswith( _IMPORTED_FLAG ):
+            print( "{} was imported remotely, not adding to ours, need a first hand reference".format( domain ) )
             continue
         elif domain in d_BANS:
             d_BANS[domain]['reason'].append(reason)
         else:
+            # new ban
             d_BANS[domain] = {}
             d_BANS[domain]['reason'] = []
             d_BANS[domain]['reason'].append(reason)
@@ -112,7 +124,7 @@ if __name__ == '__main__':
     #    # current schema
     #    pprint(row)
 
-    sql_insert_domain_block = """INSERT INTO domain_blocks ( domain, created_at, updated_at, severity, reject_media, reject_reports, private_comment, obfuscate ) VALUES ( %s, now(), now(), %s, %s, %s, %s, %s )"""
+    sql_insert_domain_block = """INSERT INTO domain_blocks ( domain, created_at, updated_at, severity, reject_media, reject_reports, private_comment, public_comment, obfuscate ) VALUES ( %s, now(), now(), %s, %s, %s, %s, %s, %s )"""
     sql_update_comment_domain_block = """UPDATE domain_blocks SET updated_at = now(),  private_comment = %s WHERE domain = %s"""
 
     for domain in d_BANS:
@@ -131,6 +143,7 @@ if __name__ == '__main__':
                     'f',  # reject_media
                     'f',  # reject_reports
                     "\n".join(d_BANS[domain]['reason']),  # private_comment,
+                    _IMPORTED_FLAG, # public_comment,
                     'f'  # obfuscate,
                 )
             )
