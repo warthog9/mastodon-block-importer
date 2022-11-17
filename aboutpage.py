@@ -131,7 +131,7 @@ class Bans(BanListParser):
                 reason = ""
             bans.append({
                 "domain": ban['domain'],
-                "reason": ban['comment']
+                "reason": "{} (automated-aboutpage): {}".format( domain, ban['comment'] )
                 })
         return bans
 
