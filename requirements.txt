@@ -4,3 +4,7 @@ Mastodon.py
 requests
 psycopg2
 packaging
+<<<<<<< Updated upstream
+=======
+validators
+>>>>>>> Stashed changes
