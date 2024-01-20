@@ -55,13 +55,10 @@ if __name__ == '__main__':
             print( "{} is obfuscated - useless to import".format( domain ) )
             continue
 
-<<<<<<< Updated upstream
-=======
         if not validators.domain( domain ):
             print( "'{}' domain not valid - moving on".format( domain ) )
             continue
 
->>>>>>> Stashed changes
         if reason is None:
             reason = ""
 
