@@ -148,9 +148,10 @@ class Bans(BanListParser):
                 print( "Caught an exception from getVersions() - skipping {} | {}".format( domain, e )  )
                 continue
 
-            if version.parse( ver ) >= version.parse( "3.0.0" ) and version.parse( ver ) < version.parse( "4.0.0" ):
+            ver_simple = ver.split('-', 1)[0]
+            if version.parse( ver_simple ) >= version.parse( "3.0.0" ) and version.parse( ver_simple ) < version.parse( "4.0.0" ):
                 bans += self.getV3( domain )
-            elif version.parse( ver ) >= version.parse( "4.0.0" ):
+            elif version.parse( ver_simple ) >= version.parse( "4.0.0" ):
                 bans += self.getV4( domain )
             else:
                 print( "Unknown version from {}: {} - skipping ".format( domain, ver ) )
